@@ -46,6 +46,15 @@ async def extract_invoice_data(file_path: str) -> dict:
     
     for item in response.get("line_items", []):
         desc = item.get("description") or "Unknown Charge"
+        # Strip basis suffixes that Veryfi sometimes concatenates into the description
+        # e.g. "Security Surcharge Per Chg Wt" → "Security Surcharge"
+        import re
+        desc = re.sub(
+            r'\s+(Per\s+Chg\s+Wt|Per\s+KG|Per\s+Shipment|Per\s+CBM|Per\s+Piece|Per\s+Unit|Per\s+Pkg|Per\s+Pallet|Per\s+Ton|Per\s+Lb|Per\s+Lbs|Per\s+Consignment)\s*$',
+            '',
+            desc,
+            flags=re.IGNORECASE
+        ).strip()
         
         # Parse numbers safely
         try:

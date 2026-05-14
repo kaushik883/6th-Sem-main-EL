@@ -273,13 +273,152 @@ async def analyze_invoice(
         raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "Invoice not found"})
 
     quote = await db.get(Quote, invoice.quote_id)
+    if not quote:
+        raise HTTPException(status_code=404, detail={"code": "NOT_FOUND", "message": "Associated quote not found"})
+
     if current_user["role"] != "super_admin" and quote.buyer_id != current_user["company_id"]:
         raise HTTPException(status_code=403, detail={"code": "FORBIDDEN", "message": "Access denied"})
 
-    # Stub
+    # ── Step 1: Clear old anomalies so re-runs are clean ──────────────────────
     await db.execute(delete(Anomaly).where(Anomaly.invoice_id == invoice_id))
+    await db.flush()
+
+    anomalies_to_create = []
+
+    # ── Step 2: Load invoice charges and quote charges ─────────────────────────
+    inv_charges_result = await db.execute(
+        select(InvoiceCharge).where(InvoiceCharge.invoice_id == invoice_id)
+    )
+    inv_charges = inv_charges_result.scalars().all()
+
+    from app.models.quote import QuoteCharge
+    quote_charges_result = await db.execute(
+        select(QuoteCharge).where(QuoteCharge.quote_id == quote.id)
+    )
+    quote_charges = quote_charges_result.scalars().all()
+
+    # ── Step 3: Build lookup maps keyed by mapped_charge_id ───────────────────
+    # For quote: mapped_charge_id → quote_charge
+    # Use first match if somehow duplicated
+    quote_map: dict[int, QuoteCharge] = {}
+    for qc in quote_charges:
+        if qc.mapped_charge_id is not None and qc.mapped_charge_id not in quote_map:
+            quote_map[qc.mapped_charge_id] = qc
+
+    # Track which quote charge IDs were matched by invoice charges
+    matched_quote_charge_ids: set[int] = set()
+
+    # ── Step 4: Walk invoice charges ──────────────────────────────────────────
+    for ic in inv_charges:
+        # Case A: invoice charge couldn't be mapped at all
+        if ic.mapped_charge_id is None:
+            anomalies_to_create.append(Anomaly(
+                invoice_id=invoice_id,
+                invoice_charge_id=ic.id,
+                flag_type="UNEXPECTED_CHARGE",
+                description=f"'{ic.raw_charge_name}' could not be mapped to any charge in the quote",
+                variance=round(float(ic.amount), 2),
+            ))
+            continue
+
+        # Case B: mapped but not present in quote at all
+        if ic.mapped_charge_id not in quote_map:
+            anomalies_to_create.append(Anomaly(
+                invoice_id=invoice_id,
+                invoice_charge_id=ic.id,
+                flag_type="UNEXPECTED_CHARGE",
+                description=f"'{ic.raw_charge_name}' (mapped to '{ic.mapped_charge_name}') was not in the original quote",
+                variance=round(float(ic.amount), 2),
+            ))
+            continue
+
+        # Case C: found a matching quote charge — compare line by line
+        qc = quote_map[ic.mapped_charge_id]
+        matched_quote_charge_ids.add(ic.mapped_charge_id)
+
+        inv_amount = round(float(ic.amount), 2)
+        quote_amount = round(float(qc.amount), 2)
+        inv_rate = round(float(ic.rate), 2)
+        quote_rate = round(float(qc.rate), 2)
+
+        if ic.basis != qc.basis:
+            anomalies_to_create.append(Anomaly(
+                invoice_id=invoice_id,
+                invoice_charge_id=ic.id,
+                flag_type="BASIS_MISMATCH",
+                description=f"'{ic.mapped_charge_name}': basis changed from '{qc.basis}' (quote) to '{ic.basis}' (invoice)",
+                variance=None,
+            ))
+
+        if inv_rate != quote_rate:
+            anomalies_to_create.append(Anomaly(
+                invoice_id=invoice_id,
+                invoice_charge_id=ic.id,
+                flag_type="RATE_MISMATCH",
+                description=f"'{ic.mapped_charge_name}': rate changed from {quote_rate} (quote) to {inv_rate} (invoice)",
+                variance=round(inv_rate - quote_rate, 2),
+            ))
+
+        if inv_amount != quote_amount:
+            anomalies_to_create.append(Anomaly(
+                invoice_id=invoice_id,
+                invoice_charge_id=ic.id,
+                flag_type="AMOUNT_MISMATCH",
+                description=f"'{ic.mapped_charge_name}': amount changed from {quote_amount} (quote) to {inv_amount} (invoice)",
+                variance=round(inv_amount - quote_amount, 2),
+            ))
+
+    # ── Step 5: Quote charges missing from invoice ─────────────────────────────
+    for qc in quote_charges:
+        if qc.mapped_charge_id is None:
+            continue  # unmapped quote charge — can't track it
+        if qc.mapped_charge_id not in matched_quote_charge_ids:
+            anomalies_to_create.append(Anomaly(
+                invoice_id=invoice_id,
+                invoice_charge_id=None,
+                flag_type="MISSING_CHARGE",
+                description=f"'{qc.mapped_charge_name or qc.raw_charge_name}' was in the quote but missing from the invoice",
+                variance=round(-float(qc.amount), 2),  # negative = undercharged
+            ))
+
+    # ── Step 6: Duplicate invoice check ───────────────────────────────────────
+    dup_result = await db.execute(
+        select(Invoice).where(
+            Invoice.quote_id == quote.id,
+            Invoice.id != invoice_id
+        )
+    )
+    duplicates = dup_result.scalars().all()
+    if duplicates:
+        dup_numbers = ", ".join(d.invoice_number for d in duplicates)
+        anomalies_to_create.append(Anomaly(
+            invoice_id=invoice_id,
+            invoice_charge_id=None,
+            flag_type="DUPLICATE_INVOICE",
+            description=f"Quote {quote.quote_ref} already has invoice(s): {dup_numbers}",
+            variance=None,
+        ))
+
+    # ── Step 7: Persist and return ────────────────────────────────────────────
+    for a in anomalies_to_create:
+        db.add(a)
     await db.commit()
-    return []
+
+    # Re-fetch to get IDs
+    result = await db.execute(select(Anomaly).where(Anomaly.invoice_id == invoice_id))
+    saved = result.scalars().all()
+
+    return [
+        {
+            "id": a.id,
+            "invoice_id": a.invoice_id,
+            "invoice_charge_id": a.invoice_charge_id,
+            "flag_type": a.flag_type,
+            "description": a.description,
+            "variance": float(a.variance) if a.variance is not None else None,
+        }
+        for a in saved
+    ]
 
 
 @router.get("/{invoice_id}/anomalies", response_model=list[dict])

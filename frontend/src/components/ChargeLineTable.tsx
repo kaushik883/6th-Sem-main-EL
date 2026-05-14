@@ -89,7 +89,10 @@ export function ChargeLineTable({
             <th className="px-4 py-3 text-right font-semibold text-slate-300">Qty</th>
             <th className="px-4 py-3 text-right font-semibold text-slate-300">Amount</th>
             {quoteCharges.length > 0 && (
-              <th className="px-4 py-3 text-right font-semibold text-slate-300">Quoted</th>
+              <>
+                <th className="px-4 py-3 text-right font-semibold text-slate-300">Quoted</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-300">Variance</th>
+              </>
             )}
             {showConfidence && isClient && (
               <th className="px-4 py-3 text-center font-semibold text-slate-300">Confidence</th>
@@ -143,9 +146,23 @@ export function ChargeLineTable({
                 <td className="px-4 py-3 text-right font-mono text-slate-300">{charge.qty}</td>
                 <td className="px-4 py-3 text-right font-mono font-semibold text-slate-100">{fmt(charge.amount)}</td>
                 {quoteCharges.length > 0 && (
-                  <td className="px-4 py-3 text-right font-mono text-slate-400">
-                    {quoteCharge ? fmt(quoteCharge.amount) : <span className="text-slate-600">—</span>}
-                  </td>
+                  <>
+                    <td className="px-4 py-3 text-right font-mono text-slate-400">
+                      {quoteCharge ? fmt(quoteCharge.amount) : <span className="text-slate-600">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono">
+                      {quoteCharge ? (() => {
+                        const v = charge.amount - quoteCharge.amount;
+                        const rounded = Math.round(v * 100) / 100;
+                        if (rounded === 0) return <span className="text-slate-500">—</span>;
+                        return (
+                          <span className={rounded > 0 ? 'text-red-400' : 'text-emerald-400'}>
+                            {rounded > 0 ? '+' : ''}{fmt(rounded)}
+                          </span>
+                        );
+                      })() : <span className="text-red-400">+{fmt(charge.amount)}</span>}
+                    </td>
+                  </>
                 )}
                 {showConfidence && isClient && (
                   <td className="px-4 py-3 text-center">
@@ -192,9 +209,20 @@ export function ChargeLineTable({
               {fmt(charges.reduce((s, c) => s + c.amount, 0))}
             </td>
             {quoteCharges.length > 0 && (
-              <td className="px-4 py-3 text-right font-mono font-bold text-slate-400">
-                {fmt(quoteCharges.reduce((s, c) => s + c.amount, 0))}
-              </td>
+              <>
+                <td className="px-4 py-3 text-right font-mono font-bold text-slate-400">
+                  {fmt(quoteCharges.reduce((s, c) => s + c.amount, 0))}
+                </td>
+                <td className="px-4 py-3 text-right font-mono font-bold">
+                  {(() => {
+                    const invTotal = charges.reduce((s, c) => s + c.amount, 0);
+                    const qtTotal = quoteCharges.reduce((s, c) => s + c.amount, 0);
+                    const v = Math.round((invTotal - qtTotal) * 100) / 100;
+                    if (v === 0) return <span className="text-slate-500">—</span>;
+                    return <span className={v > 0 ? 'text-red-400' : 'text-emerald-400'}>{v > 0 ? '+' : ''}{fmt(v)}</span>;
+                  })()}
+                </td>
+              </>
             )}
             {showConfidence && isClient && <td />}
             {anomalies.length > 0 && <td />}
