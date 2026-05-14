@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     VERYFI_API_KEY: str = ""
     
     OPENAI_API_KEY: str = ""
+    GEMINI_API_KEY: str = ""
+
+    # Copilot safety limits
+    COPILOT_STATEMENT_TIMEOUT_MS: int = 8000   # 8 s hard query timeout
+    COPILOT_MAX_ROWS: int = 200                # hard row cap on every query
     # Cloudflare R2
     R2_ENDPOINT_URL: str = ""
     R2_ACCESS_KEY_ID: str = ""
