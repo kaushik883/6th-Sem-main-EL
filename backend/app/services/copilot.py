@@ -1,15 +1,12 @@
 """
-copilot.py — NL→SQL Copilot orchestrator service.
+copilot.py — NL→SQL Copilot orchestrator service using LangChain.
 
-Pipeline:
+Pipeline (LangChain):
   1. Build grounded system prompt (schema + user context + tenant rules)
-  2. Call OpenAI GPT-4o-mini to generate SQL
+  2. Use ChatOpenAI to generate SQL
   3. Extract & validate SQL through the guardrail
   4. Execute safely via the executor
   5. Summarize results back to natural language via a second LLM call
-
-User-facing error messages are deliberately generic — detailed reasons are
-logged server-side but never returned to the client.
 """
 
 import json
@@ -17,7 +14,9 @@ import logging
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from openai import AsyncOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 from app.core.config import settings
 from app.services.copilot_schema import SCHEMA_CONTEXT
@@ -35,7 +34,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 _MSG_NO_KEY = (
     "Copilot is not configured yet. "
-    "Please add your OPENAI_API_KEY to the backend .env file and restart the server."
+    "Please add your GEMINI_API_KEY to the backend .env file and restart the server."
 )
 _MSG_UNSAFE = (
     "I can only answer read-only questions about your freight data. "
@@ -54,23 +53,9 @@ _MSG_NO_DATA = (
     "The records you're asking about may not exist yet."
 )
 _MSG_LLM_ERROR = (
-    "I had trouble generating a query for that question. "
-    "Could you rephrase it or try one of the suggested queries?"
+    "I had trouble generating an answer for that question. "
+    "If you just added a new API key, please check your Gemini API quota/billing limits!"
 )
-
-
-# ---------------------------------------------------------------------------
-# OpenAI client (lazy singleton)
-# ---------------------------------------------------------------------------
-_openai_client = None
-
-
-def _get_openai_client():
-    global _openai_client
-    if _openai_client is None:
-        _openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-    return _openai_client
-
 
 # ---------------------------------------------------------------------------
 # Prompt builders
@@ -103,7 +88,6 @@ TENANT CONTEXT (MANDATORY):
 - NEVER return data from other companies. This is a security requirement.
 """
     else:
-        # super_admin — sees all data, no filter injected
         tenant_rule = """
 TENANT CONTEXT:
 - You are answering for a SUPER ADMIN user who can see all companies' data.
@@ -128,23 +112,17 @@ STRICT RULES — violating any rule causes the query to be rejected:
 
 If you cannot answer the question with a valid SELECT, return exactly: CANNOT_ANSWER"""
 
-
-def _build_summarize_prompt(
-    question: str,
-    rows: list[dict[str, Any]],
-    capped: bool,
-) -> str:
-    rows_json = json.dumps(rows[:50], indent=2, default=str)  # cap context size
+def _build_summarize_prompt(capped: bool) -> str:
     cap_note = (
         f"\n⚠️ Results were capped at {settings.COPILOT_MAX_ROWS} rows — "
         "there may be more records not shown."
         if capped
         else ""
     )
-    return f"""A user asked: "{question}"
+    return f"""A user asked: "{{question}}"
 
 The database returned these results (JSON):
-{rows_json}{cap_note}
+{{rows_json}}{cap_note}
 
 Write a concise, professional natural-language answer to the user's question based on these results.
 - Lead with the key insight or number.
@@ -153,7 +131,6 @@ Write a concise, professional natural-language answer to the user's question bas
 - If results are empty, say no data was found.
 - Keep it under 200 words.
 - Do NOT mention SQL, databases, or technical terms."""
-
 
 # ---------------------------------------------------------------------------
 # Main entry point
@@ -164,113 +141,66 @@ async def answer_question(
     current_user: dict,
     db: AsyncSession,
 ) -> str:
-    """
-    Process a natural-language question through the full NL→SQL→Answer pipeline.
-
-    Returns a plain-English answer string safe to return to the frontend.
-    Never raises — all exceptions produce a user-facing safe message.
-    """
-
-    # ── Guard: API key present ───────────────────────────────────────────────
-    if not settings.OPENAI_API_KEY or not settings.OPENAI_API_KEY.strip():
-        logger.warning("Copilot called but OPENAI_API_KEY is not set")
+    if not settings.GEMINI_API_KEY or not settings.GEMINI_API_KEY.strip():
+        logger.warning("Copilot called but GEMINI_API_KEY is not set")
         return _MSG_NO_KEY
 
-    # ── Step 1: Generate SQL via OpenAI ─────────────────────────────────────
     system_prompt = _build_sql_system_prompt(current_user)
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0, google_api_key=settings.GEMINI_API_KEY)
+    
+    # ── Step 1: Generate SQL via LangChain ──────────────────────────────────
+    sql_prompt = ChatPromptTemplate.from_messages([
+        ("system", system_prompt),
+        ("human", 'Generate a PostgreSQL SELECT query to answer this question:\n"{question}"')
+    ])
+    
+    sql_chain = sql_prompt | llm | StrOutputParser()
 
     try:
-        client = _get_openai_client()
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f'Generate a PostgreSQL SELECT query to answer this question:\n"{question}"'}
-            ],
-            temperature=0.0,  # deterministic SQL generation
-            max_tokens=1024,
-        )
-        raw_llm_output = response.choices[0].message.content.strip()
-        logger.info(
-            "Copilot LLM SQL response for user=%s: %s",
-            current_user.get("id", "?"),
-            raw_llm_output[:300],
-        )
+        raw_llm_output = await sql_chain.ainvoke({"question": question})
+        logger.info("Copilot LLM SQL response: %s", raw_llm_output[:300])
     except Exception as exc:
-        logger.error("Copilot LLM call failed: %s", str(exc)[:300])
+        logger.error("Copilot SQL generation failed: %s", str(exc))
         return _MSG_LLM_ERROR
 
-    # ── Step 2: Handle CANNOT_ANSWER ────────────────────────────────────────
     if raw_llm_output.strip().upper().startswith("CANNOT_ANSWER"):
-        logger.info("Copilot LLM returned CANNOT_ANSWER for question: %s", question[:200])
         return _MSG_LLM_ERROR
 
-    # ── Step 3: Extract & validate SQL ──────────────────────────────────────
+    # ── Step 2: Validate SQL (Guardrails) ───────────────────────────────────
     candidate_sql = extract_sql_from_llm_response(raw_llm_output)
     ok, reject_reason = validate_sql(candidate_sql)
 
     if not ok:
-        logger.warning(
-            "Copilot guardrail BLOCKED query. user=%s question=%r reason=%s sql=%r",
-            current_user.get("id", "?"),
-            question[:200],
-            reject_reason,
-            candidate_sql[:300],
-        )
+        logger.warning("Guardrail blocked query. Reason: %s", reject_reason)
         return _MSG_UNSAFE
 
-    logger.info(
-        "Copilot guardrail PASSED. user=%s sql_preview=%r",
-        current_user.get("id", "?"),
-        candidate_sql[:200],
-    )
-
-    # ── Step 4: Execute safely ───────────────────────────────────────────────
+    # ── Step 3: Execute SQL Safely (Read-Only context) ──────────────────────
     try:
         rows, capped = await execute_safe_query(candidate_sql, db)
     except CopilotQueryTimeout:
-        logger.warning(
-            "Copilot query timed out. user=%s sql=%r",
-            current_user.get("id", "?"),
-            candidate_sql[:200],
-        )
         return _MSG_TIMEOUT
     except CopilotQueryError as exc:
-        logger.error(
-            "Copilot executor error. user=%s error=%s sql=%r",
-            current_user.get("id", "?"),
-            str(exc)[:200],
-            candidate_sql[:200],
-        )
+        logger.error("DB Execution error: %s", str(exc))
         return _MSG_DB_ERROR
 
-    # ── Step 5: Handle empty results ─────────────────────────────────────────
     if not rows:
         return _MSG_NO_DATA
 
-    # ── Step 6: Summarize results into natural language ──────────────────────
-    summarize_prompt = _build_summarize_prompt(question, rows, capped)
-
+    # ── Step 4: Summarize Results via LangChain ─────────────────────────────
+    summary_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3, google_api_key=settings.GEMINI_API_KEY)
+    summary_prompt_tmpl = _build_summarize_prompt(capped)
+    summary_prompt = ChatPromptTemplate.from_template(summary_prompt_tmpl)
+    
+    summary_chain = summary_prompt | summary_llm | StrOutputParser()
+    
     try:
-        summary_response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "user", "content": summarize_prompt}
-            ],
-            temperature=0.3,
-            max_tokens=512,
-        )
-        answer = summary_response.choices[0].message.content.strip()
-        logger.info(
-            "Copilot answered. user=%s rows=%d capped=%s",
-            current_user.get("id", "?"),
-            len(rows),
-            capped,
-        )
+        answer = await summary_chain.ainvoke({
+            "question": question,
+            "rows_json": json.dumps(rows[:50], indent=2, default=str)
+        })
         return answer
     except Exception as exc:
-        logger.error("Copilot summarization LLM call failed: %s", str(exc)[:300])
-        # Fallback: return a raw data dump as a safe degraded response
+        logger.error("Copilot summarization failed: %s", str(exc))
         preview = json.dumps(rows[:10], indent=2, default=str)
         cap_note = f"\n_(results capped at {settings.COPILOT_MAX_ROWS} rows)_" if capped else ""
         return f"Here are the results for your query:\n```\n{preview}\n```{cap_note}"

@@ -105,11 +105,19 @@ def _extract_real_table_names(sql: str) -> set[str]:
     3. Subtract names that immediately follow a closing ) — those are
        subquery aliases (e.g. `FROM (...) AS alias`).
     """
+    clean_sql = sql.replace('"', '').replace('`', '').replace('[', '').replace(']', '')
+    
+    # Remove EXTRACT(... FROM ...) so FROM isn't confused for a table
+    clean_sql = re.sub(r"EXTRACT\s*\([^)]*\bFROM\b[^)]*\)", " ", clean_sql, flags=re.IGNORECASE)
+    
+    # Remove SUBSTRING(... FROM ...) similarly if present
+    clean_sql = re.sub(r"SUBSTRING\s*\([^)]*\bFROM\b[^)]*\)", " ", clean_sql, flags=re.IGNORECASE)
+
     # Collect CTE-defined aliases so they aren't flagged as unknown tables
-    cte_aliases = {m.group(1).lower() for m in _CTE_ALIAS_RE.finditer(sql)}
+    cte_aliases = {m.group(1).lower() for m in _CTE_ALIAS_RE.finditer(clean_sql)}
 
     # Find all FROM/JOIN targets
-    raw_refs = {m.group(1).lower() for m in _TABLE_REF_RE.finditer(sql)}
+    raw_refs = {m.group(1).lower() for m in _TABLE_REF_RE.finditer(clean_sql)}
 
     # Filter out CTE aliases — they are virtual, not real tables
     real_tables = raw_refs - cte_aliases
@@ -135,6 +143,8 @@ def validate_sql(raw_sql: str) -> tuple[bool, Optional[str]]:
     """
     if not raw_sql or not raw_sql.strip():
         return False, "Empty SQL"
+        
+    logger.warning("VALIDATING SQL: %r", raw_sql)
 
     # ── 1. Multi-statement check ─────────────────────────────────────────────
     # Strip trailing semicolon, then any remaining ; indicates multiple statements

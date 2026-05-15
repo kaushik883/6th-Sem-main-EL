@@ -24,18 +24,16 @@ function MessageBubble({ message }: { message: Message }) {
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       <div
-        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-          isUser ? 'bg-sky-600' : 'bg-slate-700'
-        }`}
+        className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isUser ? 'bg-sky-600' : 'bg-slate-700'
+          }`}
       >
         {isUser ? <User className="w-4 h-4 text-white" /> : <Zap className="w-4 h-4 text-slate-300" />}
       </div>
       <div
-        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-          isUser
-            ? 'bg-sky-600 text-white rounded-tr-sm'
-            : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-tl-sm'
-        }`}
+        className={`max-w-[75%] rounded-2xl px-4 py-3 ${isUser
+          ? 'bg-sky-600 text-white rounded-tr-sm'
+          : 'bg-slate-800 border border-slate-700 text-slate-100 rounded-tl-sm'
+          }`}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
         <p className={`text-xs mt-1.5 ${isUser ? 'text-sky-200' : 'text-slate-500'}`}>
@@ -142,7 +140,7 @@ export function Copilot() {
           </div>
           <div className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-emerald-800 bg-emerald-950/40">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-emerald-400 font-medium">GPT-4o-mini</span>
+            <span className="text-xs text-emerald-400 font-medium">Gemini-2.5-flash</span>
           </div>
         </div>
       </div>
