@@ -19,49 +19,55 @@ const HOW_IT_WORKS = [
     step: '01',
     title: 'Forwarder Submits Quote',
     desc: 'Freight forwarders submit quotes using their own charge terminology — no need to learn your internal naming.',
-    color: 'text-sky-400',
-    border: 'border-sky-800',
-    bg: 'bg-sky-950/30',
+    color: 'text-indigo-400',
+    border: 'border-indigo-500/20',
+    bg: 'bg-indigo-500/5',
+    dot: 'bg-indigo-400',
   },
   {
     step: '02',
     title: 'AI Maps to Charge Master',
     desc: 'A three-tier pipeline (synonym dictionary → vector similarity → LLM fallback) maps every charge to your internal standard.',
     color: 'text-violet-400',
-    border: 'border-violet-800',
-    bg: 'bg-violet-950/30',
+    border: 'border-violet-500/20',
+    bg: 'bg-violet-500/5',
+    dot: 'bg-violet-400',
   },
   {
     step: '03',
     title: 'Client Reviews & Accepts',
     desc: 'You see quotes in your own nomenclature. Low-confidence mappings are surfaced for one-click correction.',
     color: 'text-emerald-400',
-    border: 'border-emerald-800',
-    bg: 'bg-emerald-950/30',
+    border: 'border-emerald-500/20',
+    bg: 'bg-emerald-500/5',
+    dot: 'bg-emerald-400',
   },
   {
     step: '04',
     title: 'Invoice Uploaded & Analysed',
     desc: 'The forwarder uploads the PDF invoice. OCR extraction + the same mapping pipeline runs automatically.',
     color: 'text-amber-400',
-    border: 'border-amber-800',
-    bg: 'bg-amber-950/30',
+    border: 'border-amber-500/20',
+    bg: 'bg-amber-500/5',
+    dot: 'bg-amber-400',
   },
   {
     step: '05',
     title: 'Anomalies Flagged',
     desc: 'Amount mismatches, rate changes, unexpected charges, and duplicates are detected and surfaced instantly.',
-    color: 'text-red-400',
-    border: 'border-red-800',
-    bg: 'bg-red-950/30',
+    color: 'text-rose-400',
+    border: 'border-rose-500/20',
+    bg: 'bg-rose-500/5',
+    dot: 'bg-rose-400',
   },
   {
     step: '06',
     title: 'Copilot Answers Questions',
     desc: 'Ask plain English questions about your freight spend. LogiSight translates to SQL and returns precise answers.',
     color: 'text-cyan-400',
-    border: 'border-cyan-800',
-    bg: 'bg-cyan-950/30',
+    border: 'border-cyan-500/20',
+    bg: 'bg-cyan-500/5',
+    dot: 'bg-cyan-400',
   },
 ];
 
@@ -71,8 +77,8 @@ const ROLES = [
     subtitle: 'Take control of your freight spend',
     Icon: ShieldCheck,
     color: 'text-emerald-400',
-    border: 'border-emerald-800',
-    bg: 'bg-emerald-950/20',
+    border: 'border-emerald-500/20',
+    bg: 'bg-emerald-500/5',
     points: [
       'Receive quotes mapped to your Charge Master automatically',
       'Review low-confidence mappings with one-click correction',
@@ -86,9 +92,9 @@ const ROLES = [
     title: 'For Freight Forwarders',
     subtitle: 'Submit quotes and invoices your way',
     Icon: Globe,
-    color: 'text-sky-400',
-    border: 'border-sky-800',
-    bg: 'bg-sky-950/20',
+    color: 'text-indigo-400',
+    border: 'border-indigo-500/20',
+    bg: 'bg-indigo-500/5',
     points: [
       'Use your own charge terminology — no mapping required on your end',
       'Submit structured quotes with dynamic charge lines',
@@ -102,8 +108,8 @@ const ROLES = [
     subtitle: 'Full control over the platform',
     Icon: Users,
     color: 'text-amber-400',
-    border: 'border-amber-800',
-    bg: 'bg-amber-950/20',
+    border: 'border-amber-500/20',
+    bg: 'bg-amber-500/5',
     points: [
       'Create and manage client and forwarder companies',
       'Provision first admin users for each company',
@@ -125,46 +131,59 @@ const FEATURES = [
 
 export function Landing() {
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <nav className="fixed top-0 inset-x-0 z-50 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
+    <div className="min-h-screen text-slate-100" style={{ background: '#030712' }}>
+
+      {/* ── Nav ─────────────────────────────────────────────────────────────── */}
+      <nav className="fixed top-0 inset-x-0 z-50 border-b border-white/[0.06]"
+        style={{ background: 'rgba(3,7,18,0.85)', backdropFilter: 'blur(16px)' }}
+      >
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-indigo-500/40 to-transparent" />
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Zap className="w-4 h-4 text-white" />
             </div>
-            <span className="font-bold text-lg tracking-tight">LogiSight</span>
+            <span className="font-bold text-lg tracking-tight">
+              Logi<span className="text-indigo-400">Sight</span>
+            </span>
           </div>
           <div className="flex items-center gap-4">
-            <Link
-              to="/login"
-              className="text-sm text-slate-400 hover:text-slate-100 transition-colors"
-            >
+            <Link to="/login" className="text-sm text-slate-400 hover:text-slate-100 transition-colors">
               Sign in
             </Link>
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-white text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition-all shadow-lg shadow-indigo-500/25"
             >
-              Get Started <ArrowRight className="w-4 h-4" />
+              Get Started <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
       </nav>
 
-      <section className="relative pt-32 pb-24 px-6 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-sky-600/5 rounded-full blur-3xl pointer-events-none" />
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <section className="relative pt-32 pb-28 px-6 overflow-hidden">
+        {/* Background glows */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full"
+            style={{ background: 'radial-gradient(ellipse at center top, rgba(99,102,241,0.12) 0%, transparent 70%)' }}
+          />
+          <div className="absolute top-20 left-1/2 -translate-x-[60%] w-[600px] h-[300px] bg-violet-600/5 rounded-full blur-3xl" />
+          <div className="absolute top-32 left-1/2 translate-x-[10%] w-[400px] h-[200px] bg-indigo-600/6 rounded-full blur-3xl" />
+        </div>
 
         <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-sky-800/60 bg-sky-950/40 text-sky-400 text-xs font-medium mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
             AI-Powered Freight Audit Intelligence
           </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 leading-tight">
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6 leading-[1.08]">
             Stop Overpaying on
             <br />
-            <span className="text-sky-400">Freight Invoices</span>
+            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-indigo-400 bg-clip-text text-transparent">
+              Freight Invoices
+            </span>
           </h1>
 
           <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-10">
@@ -176,13 +195,13 @@ export function Landing() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/login"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold transition-colors shadow-lg shadow-sky-500/20"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-xl shadow-indigo-500/25"
             >
               Start Free Trial <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-lg border border-slate-700 hover:border-slate-600 text-slate-300 hover:text-white font-medium transition-colors"
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.10] hover:border-white/[0.20] text-slate-300 hover:text-white font-medium transition-all"
             >
               See How It Works
             </a>
@@ -192,10 +211,10 @@ export function Landing() {
             {[
               { label: 'Mapping Accuracy', value: '99%+' },
               { label: 'Avg. Time Saved', value: '12h/mo' },
-              { label: 'Anomaly Types', value: '6' },
+              { label: 'Anomaly Types', value: '6+' },
             ].map(({ label, value }) => (
               <div key={label} className="text-center">
-                <p className="text-3xl font-bold text-sky-400">{value}</p>
+                <p className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">{value}</p>
                 <p className="text-xs text-slate-500 mt-1">{label}</p>
               </div>
             ))}
@@ -203,7 +222,8 @@ export function Landing() {
         </div>
       </section>
 
-      <section id="how-it-works" className="py-24 px-6 border-t border-slate-800/60">
+      {/* ── How It Works ─────────────────────────────────────────────────────── */}
+      <section id="how-it-works" className="py-24 px-6 border-t border-white/[0.05]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">How It Works</h2>
@@ -211,14 +231,10 @@ export function Landing() {
               From quote submission to anomaly detection — fully automated, end to end.
             </p>
           </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {HOW_IT_WORKS.map(({ step, title, desc, color, border, bg }) => (
-              <div
-                key={step}
-                className={`relative p-6 rounded-xl border ${border} ${bg} flex flex-col gap-3`}
-              >
-                <span className={`text-xs font-mono font-bold ${color} opacity-60`}>STEP {step}</span>
+              <div key={step} className={`relative p-6 rounded-2xl border ${border} ${bg} flex flex-col gap-3 hover:border-opacity-40 transition-all`}>
+                <span className={`text-[10px] font-mono font-bold uppercase tracking-widest ${color} opacity-50`}>STEP {step}</span>
                 <div className="flex items-start gap-3">
                   <ChevronRight className={`w-5 h-5 mt-0.5 flex-shrink-0 ${color}`} />
                   <div>
@@ -232,28 +248,28 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 border-t border-slate-800/60 bg-slate-900/30">
+      {/* ── Built for Your Role ───────────────────────────────────────────────── */}
+      <section className="py-24 px-6 border-t border-white/[0.05]" style={{ background: 'rgba(255,255,255,0.01)' }}>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Built for Your Role</h2>
             <p className="text-slate-400">Different personas, different needs — all served precisely.</p>
           </div>
-
-          <div className="grid lg:grid-cols-3 gap-6">
+          <div className="grid lg:grid-cols-3 gap-5">
             {ROLES.map(({ title, subtitle, Icon, color, border, bg, points }) => (
-              <div key={title} className={`p-6 rounded-xl border ${border} ${bg}`}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-10 h-10 rounded-lg bg-slate-900 border ${border} flex items-center justify-center`}>
+              <div key={title} className={`p-6 rounded-2xl border ${border} ${bg}`}>
+                <div className="flex items-center gap-3 mb-5">
+                  <div className={`w-10 h-10 rounded-xl border ${border} flex items-center justify-center`} style={{ background: 'rgba(255,255,255,0.04)' }}>
                     <Icon className={`w-5 h-5 ${color}`} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-slate-100">{title}</h3>
-                    <p className={`text-xs ${color}`}>{subtitle}</p>
+                    <p className={`text-xs mt-0.5 ${color}`}>{subtitle}</p>
                   </div>
                 </div>
                 <ul className="space-y-2.5">
                   {points.map((p) => (
-                    <li key={p} className="flex items-start gap-2">
+                    <li key={p} className="flex items-start gap-2.5">
                       <CheckCircle2 className={`w-4 h-4 mt-0.5 flex-shrink-0 ${color}`} />
                       <span className="text-sm text-slate-300">{p}</span>
                     </li>
@@ -265,16 +281,17 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 border-t border-slate-800/60">
+      {/* ── Platform Capabilities ─────────────────────────────────────────────── */}
+      <section className="py-24 px-6 border-t border-white/[0.05]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold mb-4">Platform Capabilities</h2>
           </div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map(({ Icon, title, desc }) => (
-              <div key={title} className="p-5 rounded-xl border border-slate-800 bg-slate-900/40 flex gap-4">
-                <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-sky-400" />
+              <div key={title} className="p-5 rounded-2xl border border-white/[0.07] bg-white/[0.02] flex gap-4 hover:border-indigo-500/25 hover:bg-indigo-500/5 transition-all group">
+                <div className="w-10 h-10 rounded-xl border border-indigo-500/20 bg-indigo-500/10 flex items-center justify-center flex-shrink-0 group-hover:border-indigo-500/40 transition-all">
+                  <Icon className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-100 mb-1">{title}</h3>
@@ -286,7 +303,8 @@ export function Landing() {
         </div>
       </section>
 
-      <section className="py-24 px-6 border-t border-slate-800/60">
+      {/* ── CTA ──────────────────────────────────────────────────────────────── */}
+      <section className="py-24 px-6 border-t border-white/[0.05]">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Ready to audit smarter?</h2>
           <p className="text-slate-400 mb-8">
@@ -294,20 +312,23 @@ export function Landing() {
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-lg bg-sky-500 hover:bg-sky-400 text-white font-semibold transition-colors shadow-lg shadow-sky-500/20"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-xl shadow-indigo-500/25"
           >
             Get Started Now <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>
 
-      <footer className="border-t border-slate-800 py-8 px-6">
+      {/* ── Footer ───────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/[0.05] py-8 px-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-sky-500 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
               <Zap className="w-3 h-3 text-white" />
             </div>
-            <span className="text-sm font-semibold text-slate-300">LogiSight</span>
+            <span className="text-sm font-bold text-slate-300">
+              Logi<span className="text-indigo-400">Sight</span>
+            </span>
           </div>
           <p className="text-xs text-slate-600">
             &copy; {new Date().getFullYear()} LogiSight. AI-Powered Freight Audit Intelligence.

@@ -21,7 +21,7 @@ const TEST_ACCOUNTS = [
     description: 'Platform-wide access, manages all companies',
     icon: Shield,
     color: 'text-amber-400',
-    bg: 'bg-amber-950/40 border-amber-800/50 hover:bg-amber-950/70',
+    bg: 'bg-amber-500/10 border-amber-500/20 hover:bg-amber-500/15',
   },
   {
     label: 'Client Admin',
@@ -29,8 +29,8 @@ const TEST_ACCOUNTS = [
     password: 'TestPass123!',
     description: 'AcmeCo Logistics — admin access',
     icon: Building2,
-    color: 'text-sky-400',
-    bg: 'bg-sky-950/40 border-sky-800/50 hover:bg-sky-950/70',
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15',
   },
   {
     label: 'Client User',
@@ -38,8 +38,8 @@ const TEST_ACCOUNTS = [
     password: 'TestPass123!',
     description: 'AcmeCo Logistics — standard access',
     icon: User,
-    color: 'text-sky-300',
-    bg: 'bg-sky-950/30 border-sky-800/40 hover:bg-sky-950/60',
+    color: 'text-indigo-300',
+    bg: 'bg-indigo-500/8 border-indigo-500/15 hover:bg-indigo-500/12',
   },
   {
     label: 'Forwarder Admin',
@@ -48,7 +48,7 @@ const TEST_ACCOUNTS = [
     description: 'FastFreight Co — admin access',
     icon: Truck,
     color: 'text-emerald-400',
-    bg: 'bg-emerald-950/40 border-emerald-800/50 hover:bg-emerald-950/70',
+    bg: 'bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/15',
   },
   {
     label: 'Forwarder User',
@@ -57,7 +57,7 @@ const TEST_ACCOUNTS = [
     description: 'FastFreight Co — standard access',
     icon: User,
     color: 'text-emerald-300',
-    bg: 'bg-emerald-950/30 border-emerald-800/40 hover:bg-emerald-950/60',
+    bg: 'bg-emerald-500/8 border-emerald-500/15 hover:bg-emerald-500/12',
   },
 ];
 
@@ -107,21 +107,36 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      {/* Left panel */}
-      <div className="hidden lg:flex flex-1 flex-col justify-between p-12 bg-slate-900/50 border-r border-slate-800">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-500 flex items-center justify-center">
+    <div className="min-h-screen flex" style={{ background: '#030712' }}>
+
+      {/* ── Left panel ───────────────────────────────────────────────────────── */}
+      <div className="hidden lg:flex flex-1 flex-col justify-between p-12 border-r border-white/[0.06] relative overflow-hidden">
+        {/* Background glow */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-20 -left-20 w-96 h-96 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.10) 0%, transparent 70%)' }}
+          />
+          <div className="absolute bottom-20 right-0 w-80 h-80 rounded-full"
+            style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.07) 0%, transparent 70%)' }}
+          />
+        </div>
+
+        <Link to="/" className="relative flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
             <Zap className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-lg text-slate-100">LogiSight</span>
+          <span className="font-bold text-lg text-slate-100">
+            Logi<span className="text-indigo-400">Sight</span>
+          </span>
         </Link>
-        <div className="max-w-sm">
-          <blockquote className="text-xl font-medium text-slate-200 leading-relaxed mb-4">
+
+        <div className="relative max-w-sm">
+          <div className="mb-6 w-10 h-1 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" />
+          <blockquote className="text-xl font-medium text-slate-200 leading-relaxed mb-6">
             "We eliminated three hours of manual freight reconciliation every week in the first month."
           </blockquote>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-sky-800 flex items-center justify-center text-sky-300 font-bold text-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center text-white font-bold text-sm shadow-lg">
               SL
             </div>
             <div>
@@ -130,24 +145,29 @@ export function Login() {
             </div>
           </div>
         </div>
-        <p className="text-xs text-slate-600">&copy; {new Date().getFullYear()} LogiSight</p>
+
+        <p className="relative text-xs text-slate-700">&copy; {new Date().getFullYear()} LogiSight</p>
       </div>
 
-      {/* Right panel */}
+      {/* ── Right panel ──────────────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto">
         <div className="w-full max-w-sm">
+
+          {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-2 mb-10">
-            <div className="w-7 h-7 rounded-lg bg-sky-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
               <Zap className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="font-bold text-slate-100">LogiSight</span>
+            <span className="font-bold text-slate-100">
+              Logi<span className="text-indigo-400">Sight</span>
+            </span>
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-100 mb-2">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-slate-100 mb-1">Welcome back</h1>
           <p className="text-sm text-slate-400 mb-8">Sign in to your account to continue</p>
 
           {error && (
-            <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-950/60 border border-red-800 mb-6">
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 mb-6">
               <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-300">{error}</p>
             </div>
@@ -163,7 +183,7 @@ export function Login() {
                 type="email"
                 autoComplete="email"
                 placeholder="you@company.com"
-                className="w-full px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/30 transition-all"
               />
               {errors.email && (
                 <p className="mt-1.5 text-xs text-red-400">{errors.email.message}</p>
@@ -180,7 +200,7 @@ export function Login() {
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full px-3 py-2.5 pr-10 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-shadow"
+                  className="w-full px-3.5 py-2.5 pr-11 rounded-xl border border-white/[0.08] bg-white/[0.04] text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/30 transition-all"
                 />
                 <button
                   type="button"
@@ -198,7 +218,7 @@ export function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 rounded-lg bg-sky-500 hover:bg-sky-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -216,7 +236,7 @@ export function Login() {
             <button
               type="button"
               onClick={() => setDevOpen((v) => !v)}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-dashed border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-400 transition-colors text-xs font-medium"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-dashed border-white/[0.10] text-slate-500 hover:border-indigo-500/30 hover:text-slate-400 transition-all text-xs font-medium"
             >
               <span>Dev — Quick Login</span>
               <ChevronDown
@@ -235,7 +255,7 @@ export function Login() {
                   return (
                     <div
                       key={acc.email}
-                      className={`flex items-center gap-3 p-2.5 rounded-lg border cursor-pointer transition-colors ${acc.bg}`}
+                      className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${acc.bg}`}
                       onClick={() => !quickLoading && quickLogin(acc.email, acc.password)}
                     >
                       <div className="flex-shrink-0">
@@ -247,7 +267,7 @@ export function Login() {
                       </div>
                       <div className="flex-shrink-0 flex items-center gap-2">
                         {isLoading ? (
-                          <span className="w-3.5 h-3.5 border-2 border-slate-600 border-t-slate-400 rounded-full animate-spin" />
+                          <span className="w-3.5 h-3.5 border-2 border-slate-600 border-t-indigo-400 rounded-full animate-spin" />
                         ) : (
                           <>
                             <button
@@ -261,7 +281,7 @@ export function Login() {
                             >
                               Fill
                             </button>
-                            <span className="text-slate-600 text-xs">|</span>
+                            <span className="text-slate-700 text-xs">|</span>
                             <span className="text-slate-600 text-xs">Login</span>
                           </>
                         )}
@@ -275,7 +295,7 @@ export function Login() {
 
           <p className="mt-6 text-center text-xs text-slate-500">
             Platform access is by invitation only.{' '}
-            <Link to="/" className="text-sky-400 hover:text-sky-300 transition-colors">
+            <Link to="/" className="text-indigo-400 hover:text-indigo-300 transition-colors">
               Learn more
             </Link>
           </p>

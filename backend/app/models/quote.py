@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Date, Numeric, Text, CheckConstraint
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.models.base import Base
@@ -28,6 +29,9 @@ class Quote(Base):
     
     currency_id = Column(Integer, ForeignKey("currencies.id"), nullable=False)
     
+    # Virtual Telemetry Forensics — stores 24 h of E&I sensor readings as JSONB
+    telemetry_data = Column(JSONB, nullable=True)
+
     quote_date = Column(Date, server_default=func.current_date())
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

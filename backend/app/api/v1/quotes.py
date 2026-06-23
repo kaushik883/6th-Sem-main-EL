@@ -1,3 +1,4 @@
+import logging
 import time
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,9 @@ from app.models.quote import Quote, QuoteCharge
 from app.models.master import Charge, ChargeAlias
 from app.models.company import Company
 from app.models.master import Airport, Currency
+from app.services.telemetry_simulator import generate_telemetry
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -103,6 +107,7 @@ async def build_quote_out(quote: Quote, db: AsyncSession, include_charges: bool 
         "volumetric_weight": float(quote.volumetric_weight),
         "chargeable_weight": float(quote.chargeable_weight),
         "currency": {"short_name": currency.short_name} if currency else {},
+        "telemetry_data": quote.telemetry_data or [],
     }
 
     if include_charges:
@@ -301,6 +306,32 @@ async def update_quote_status(
     quote.status = body.status
     if body.rejection_note:
         quote.rejection_note = body.rejection_note
+
+    # ── Auto-generate E&I telemetry on first acceptance ───────────────────
+    # This simulates 24 h of IoT sensor data anchored to the quote's declared
+    # gross_weight. The data is written once and never overwritten so that
+    # re-accepting (edge case) does not reset forensic evidence.
+    if body.status == "ACCEPTED" and not quote.telemetry_data:
+        try:
+            telemetry = generate_telemetry(
+                quote_id=quote.id,
+                base_weight=float(quote.gross_weight),
+                is_fraud=True,   # Demo mode: inject weight-drop + temp-spike anomalies
+            )
+            quote.telemetry_data = telemetry
+            logger.info(
+                "update_quote_status: auto-generated %d telemetry readings "
+                "for accepted quote %s (gross_weight=%.2f kg).",
+                len(telemetry), quote.id, float(quote.gross_weight),
+            )
+        except Exception as exc:
+            # A simulator failure must never block the acceptance itself.
+            logger.error(
+                "update_quote_status: telemetry generation failed for quote %s "
+                "— skipping. Error: %s",
+                quote.id, exc, exc_info=True,
+            )
+
     await db.commit()
     await db.refresh(quote)
     return await build_quote_out(quote, db, include_charges=True)

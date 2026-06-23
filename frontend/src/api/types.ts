@@ -14,7 +14,9 @@ export type AnomalyFlagType =
   | 'BASIS_MISMATCH'
   | 'UNEXPECTED_CHARGE'
   | 'MISSING_CHARGE'
-  | 'DUPLICATE_INVOICE';
+  | 'DUPLICATE_INVOICE'
+  | 'TELEMETRY_WEIGHT_DROP'
+  | 'SLA_TEMP_BREACH';
 
 export interface Company {
   id: number;

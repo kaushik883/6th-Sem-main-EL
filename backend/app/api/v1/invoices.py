@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from pydantic import BaseModel
+import logging
 import uuid
 import os
 import datetime
+
+logger = logging.getLogger(__name__)
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_roles
@@ -18,6 +21,9 @@ from app.api.v1.quotes import map_charge
 # Import services
 from app.services.veryfi_client import extract_invoice_data
 from app.services.r2_storage import upload_file_to_r2
+from app.services.ei_forensics import TelemetryForensics
+
+_forensics = TelemetryForensics()
 
 router = APIRouter()
 
@@ -399,7 +405,74 @@ async def analyze_invoice(
             variance=None,
         ))
 
-    # ── Step 7: Persist and return ────────────────────────────────────────────
+    # ── Step 7: E&I Telemetry Forensics ────────────────────────────────────────
+    # Read telemetry_data from the parent quote (JSONB, nullable).
+    # Guard order:
+    #   a) column may be NULL             → skip silently
+    #   b) JSONB root may not be a list   → skip with a warning (corrupt data)
+    #   c) engine itself may raise        → log + skip; never kill financial results
+    raw_telemetry = getattr(quote, "telemetry_data", None)
+
+    if raw_telemetry is not None:
+        if not isinstance(raw_telemetry, list):
+            # Corrupt / unexpected JSONB shape — log and skip
+            logger.warning(
+                "analyze_invoice: quote %s telemetry_data is %s, expected list — skipping forensics.",
+                quote.id,
+                type(raw_telemetry).__name__,
+            )
+        elif len(raw_telemetry) == 0:
+            # Column present but empty array — nothing to analyse
+            logger.info(
+                "analyze_invoice: quote %s has an empty telemetry_data array — skipping forensics.",
+                quote.id,
+            )
+        else:
+            try:
+                # Cold-chain SLA threshold: 5 °C (adjust per commodity as needed)
+                TEMP_SLA_THRESHOLD_C = 5.0
+
+                telemetry_anomalies = _forensics.analyze(
+                    raw_telemetry,
+                    temp_threshold_c=TEMP_SLA_THRESHOLD_C,
+                )
+
+                for ta in telemetry_anomalies:
+                    # Fix: use explicit None check so variance=0.0 is preserved
+                    raw_variance = ta.get("variance")
+                    if raw_variance is not None:
+                        try:
+                            db_variance = round(float(raw_variance), 2) or None
+                        except (TypeError, ValueError):
+                            db_variance = None
+                    else:
+                        db_variance = None
+
+                    anomalies_to_create.append(Anomaly(
+                        invoice_id=invoice_id,
+                        invoice_charge_id=None,  # telemetry flags are shipment-level
+                        flag_type=ta["flag_type"],
+                        description=ta["description"],
+                        variance=db_variance,
+                    ))
+
+                logger.info(
+                    "analyze_invoice: %d telemetry anomaly/ies appended for invoice %s.",
+                    len(telemetry_anomalies),
+                    invoice_id,
+                )
+
+            except Exception as exc:
+                # Isolate: log the failure but don't let it wipe financial anomalies
+                logger.error(
+                    "analyze_invoice: telemetry forensics raised an unexpected error "
+                    "for quote %s — skipping. Error: %s",
+                    quote.id,
+                    exc,
+                    exc_info=True,
+                )
+
+    # ── Step 8: Persist and return ────────────────────────────────────────────
     for a in anomalies_to_create:
         db.add(a)
     await db.commit()
